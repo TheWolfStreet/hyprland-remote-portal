@@ -79,6 +79,41 @@ fn results(devices: Option<u32>) -> Results {
     results
 }
 
+async fn serving(
+    server: &ObjectServer,
+    connection: &zbus::Connection,
+    session_handle: &ObjectPath<'_>,
+) -> bool {
+    if server.interface::<_, Session>(session_handle).await.is_ok() {
+        return true;
+    }
+    let closed = connection
+        .emit_signal(
+            None::<()>,
+            session_handle,
+            "org.freedesktop.impl.portal.Session",
+            "Closed",
+            &(),
+        )
+        .await;
+    // BUG: KDE Connect listens for org.freedesktop.portal.Session.Closed as (u, a{sv}) from
+    // any sender, while the frontend relays the spec's (a{sv}), so it never resets a dead
+    // session. It also gets the signal in the form it expects.
+    let kde_connect_closed = connection
+        .emit_signal(
+            None::<()>,
+            session_handle,
+            "org.freedesktop.portal.Session",
+            "Closed",
+            &(SUCCESS, results(None)),
+        )
+        .await;
+    if let Err(error) = closed.and(kde_connect_closed) {
+        eprintln!("hyprland-remote-portal: cannot close {session_handle}: {error}");
+    }
+    false
+}
+
 struct RemoteDesktop {
     commands: Sender<Command>,
 }
@@ -132,13 +167,18 @@ impl RemoteDesktop {
         (SUCCESS, results(Some(KEYBOARD | POINTER)))
     }
 
-    fn notify_pointer_motion(
+    async fn notify_pointer_motion(
         &self,
+        #[zbus(object_server)] server: &ObjectServer,
+        #[zbus(connection)] connection: &zbus::Connection,
         session_handle: ObjectPath<'_>,
         _options: Options<'_>,
         dx: f64,
         dy: f64,
     ) {
+        if !serving(server, connection, &session_handle).await {
+            return;
+        }
         let _ = self.commands.send(Command::Motion {
             session: session_handle.to_string(),
             dx,
@@ -146,13 +186,18 @@ impl RemoteDesktop {
         });
     }
 
-    fn notify_pointer_button(
+    async fn notify_pointer_button(
         &self,
+        #[zbus(object_server)] server: &ObjectServer,
+        #[zbus(connection)] connection: &zbus::Connection,
         session_handle: ObjectPath<'_>,
         _options: Options<'_>,
         button: i32,
         state: u32,
     ) {
+        if !serving(server, connection, &session_handle).await {
+            return;
+        }
         let Ok(button) = u32::try_from(button) else {
             return;
         };
@@ -163,13 +208,18 @@ impl RemoteDesktop {
         });
     }
 
-    fn notify_pointer_axis(
+    async fn notify_pointer_axis(
         &self,
+        #[zbus(object_server)] server: &ObjectServer,
+        #[zbus(connection)] connection: &zbus::Connection,
         session_handle: ObjectPath<'_>,
         _options: Options<'_>,
         dx: f64,
         dy: f64,
     ) {
+        if !serving(server, connection, &session_handle).await {
+            return;
+        }
         let _ = self.commands.send(Command::Axis {
             session: session_handle.to_string(),
             dx,
@@ -177,13 +227,18 @@ impl RemoteDesktop {
         });
     }
 
-    fn notify_keyboard_keycode(
+    async fn notify_keyboard_keycode(
         &self,
+        #[zbus(object_server)] server: &ObjectServer,
+        #[zbus(connection)] connection: &zbus::Connection,
         session_handle: ObjectPath<'_>,
         _options: Options<'_>,
         keycode: i32,
         state: u32,
     ) {
+        if !serving(server, connection, &session_handle).await {
+            return;
+        }
         let Ok(key) = u32::try_from(keycode) else {
             return;
         };
@@ -194,13 +249,18 @@ impl RemoteDesktop {
         });
     }
 
-    fn notify_keyboard_keysym(
+    async fn notify_keyboard_keysym(
         &self,
+        #[zbus(object_server)] server: &ObjectServer,
+        #[zbus(connection)] connection: &zbus::Connection,
         session_handle: ObjectPath<'_>,
         _options: Options<'_>,
         keysym: i32,
         state: u32,
     ) {
+        if !serving(server, connection, &session_handle).await {
+            return;
+        }
         let Ok(keysym) = u32::try_from(keysym) else {
             return;
         };
