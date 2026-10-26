@@ -1,4 +1,4 @@
-# hypr-remote-portal
+# hyprland-remote-portal
 
 A minimal `xdg-desktop-portal` RemoteDesktop backend for Hyprland. It lets
 trusted apps such as KDE Connect move the pointer, click, scroll and type
@@ -14,15 +14,15 @@ through the Wayland virtual pointer and virtual keyboard protocols.
 
 ```nix
 {
-  inputs.hypr-remote-portal.url = "github:TheWolfStreet/hypr-remote-portal";
+  inputs.hyprland-remote-portal.url = "github:TheWolfStreet/hyprland-remote-portal";
 }
 ```
 
 ```nix
 {inputs, ...}: {
-  imports = [inputs.hypr-remote-portal.homeManagerModules.default];
+  imports = [inputs.hyprland-remote-portal.homeManagerModules.default];
 
-  services.hypr-remote-portal = {
+  services.hyprland-remote-portal = {
     enable = true;
     trustedApps = ["org.kde.kdeconnect" "kdeconnect"];
   };
@@ -30,7 +30,7 @@ through the Wayland virtual pointer and virtual keyboard protocols.
 ```
 
 The module routes `org.freedesktop.impl.portal.RemoteDesktop` to this portal.
-Trusted prefixes live in `~/.config/hypr-remote-portal/trusted-apps`, one per
+Trusted prefixes live in `~/.config/hyprland-remote-portal/trusted-apps`, one per
 line.
 
 ## License

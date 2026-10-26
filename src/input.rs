@@ -192,7 +192,7 @@ impl State {
                 let single = match keymap_file(keymap_text(&[keysym], SINGLE_KEYCODE)) {
                     Ok(single) => single,
                     Err(error) => {
-                        eprintln!("hypr-remote-portal: cannot type {keysym:?}: {error}");
+                        eprintln!("hyprland-remote-portal: cannot type {keysym:?}: {error}");
                         return;
                     }
                 };
@@ -267,7 +267,7 @@ impl State {
         let xkb = match xkb_state(&fd, size) {
             Ok(xkb) => xkb,
             Err(error) => {
-                eprintln!("hypr-remote-portal: cannot load the seat keymap: {error}");
+                eprintln!("hyprland-remote-portal: cannot load the seat keymap: {error}");
                 return;
             }
         };
@@ -312,10 +312,10 @@ fn keymap_text(keysyms: &[xkb::Keysym], first_code: u32) -> String {
     let maximum = first_code + keysyms.len() as u32;
     format!(
         "xkb_keymap {{\n\
-         xkb_keycodes \"hypr-remote\" {{\n    minimum = 8;\n    maximum = {maximum};\n{codes}}};\n\
-         xkb_types \"hypr-remote\" {{ include \"complete\" }};\n\
-         xkb_compatibility \"hypr-remote\" {{ include \"complete\" }};\n\
-         xkb_symbols \"hypr-remote\" {{\n{symbols}}};\n\
+         xkb_keycodes \"hyprland-remote\" {{\n    minimum = 8;\n    maximum = {maximum};\n{codes}}};\n\
+         xkb_types \"hyprland-remote\" {{ include \"complete\" }};\n\
+         xkb_compatibility \"hyprland-remote\" {{ include \"complete\" }};\n\
+         xkb_symbols \"hyprland-remote\" {{\n{symbols}}};\n\
          }};\n"
     )
 }
@@ -323,7 +323,7 @@ fn keymap_text(keysyms: &[xkb::Keysym], first_code: u32) -> String {
 fn keymap_file(text: String) -> Result<Keymap, String> {
     let mut bytes = text.into_bytes();
     bytes.push(0);
-    let fd = rustix::fs::memfd_create("hypr-remote-keymap", rustix::fs::MemfdFlags::CLOEXEC)
+    let fd = rustix::fs::memfd_create("hyprland-remote-keymap", rustix::fs::MemfdFlags::CLOEXEC)
         .map_err(|error| format!("cannot create a keymap file: {error}"))?;
     let file = std::fs::File::from(fd);
     file.write_all_at(&bytes, 0)

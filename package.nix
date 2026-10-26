@@ -5,7 +5,7 @@
   xkeyboard_config,
 }:
 rustPlatform.buildRustPackage {
-  pname = "hypr-remote-portal";
+  pname = "hyprland-remote-portal";
   version = "0.1.0";
 
   src = lib.fileset.toSource {
@@ -20,17 +20,17 @@ rustPlatform.buildRustPackage {
   env.XKB_CONFIG_ROOT = "${xkeyboard_config}/share/X11/xkb";
 
   postInstall = ''
-    install -Dm644 data/hypr-remote.portal -t $out/share/xdg-desktop-portal/portals
-    install -Dm644 data/org.freedesktop.impl.portal.desktop.hypr-remote.service \
+    install -Dm644 data/hyprland-remote.portal -t $out/share/xdg-desktop-portal/portals
+    install -Dm644 data/org.freedesktop.impl.portal.desktop.hyprland-remote.service \
       -t $out/share/dbus-1/services
-    substituteInPlace $out/share/dbus-1/services/org.freedesktop.impl.portal.desktop.hypr-remote.service \
+    substituteInPlace $out/share/dbus-1/services/org.freedesktop.impl.portal.desktop.hyprland-remote.service \
       --replace-fail @out@ $out
   '';
 
   meta = {
     description = "Minimal xdg-desktop-portal RemoteDesktop backend for Hyprland";
     license = lib.licenses.mit;
-    mainProgram = "hypr-remote-portal";
+    mainProgram = "hyprland-remote-portal";
     platforms = lib.platforms.linux;
   };
 }

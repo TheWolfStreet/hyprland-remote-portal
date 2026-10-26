@@ -8,7 +8,7 @@ use zbus::{
 
 use crate::input::Command;
 
-const BUS_NAME: &str = "org.freedesktop.impl.portal.desktop.hypr-remote";
+const BUS_NAME: &str = "org.freedesktop.impl.portal.desktop.hyprland-remote";
 const PORTAL_PATH: &str = "/org/freedesktop/portal/desktop";
 const KEYBOARD: u32 = 1;
 const POINTER: u32 = 2;
@@ -30,7 +30,7 @@ fn trusted_apps_file() -> Option<PathBuf> {
         Some(dir) => PathBuf::from(dir),
         None => PathBuf::from(std::env::var_os("HOME")?).join(".config"),
     };
-    Some(config.join("hypr-remote-portal").join("trusted-apps"))
+    Some(config.join("hyprland-remote-portal").join("trusted-apps"))
 }
 
 fn read_trusted_apps() -> Vec<String> {
@@ -81,7 +81,7 @@ impl RemoteDesktop {
         #[zbus(object_server)] server: &ObjectServer,
     ) -> (u32, Results) {
         if !is_trusted(&read_trusted_apps(), app_id, session_handle.as_str()) {
-            eprintln!("hypr-remote-portal: denied {app_id:?} for {session_handle}");
+            eprintln!("hyprland-remote-portal: denied {app_id:?} for {session_handle}");
             return (DENIED, results(None));
         }
         let session = Session {
@@ -89,7 +89,7 @@ impl RemoteDesktop {
             commands: self.commands.clone(),
         };
         if let Err(error) = server.at(&session_handle, session).await {
-            eprintln!("hypr-remote-portal: cannot export {session_handle}: {error}");
+            eprintln!("hyprland-remote-portal: cannot export {session_handle}: {error}");
             return (DENIED, results(None));
         }
         (SUCCESS, results(None))
@@ -224,7 +224,10 @@ impl Session {
             session: self.path.clone(),
         });
         if let Err(error) = server.remove::<Session, _>(self.path.as_str()).await {
-            eprintln!("hypr-remote-portal: cannot remove {}: {error}", self.path);
+            eprintln!(
+                "hyprland-remote-portal: cannot remove {}: {error}",
+                self.path
+            );
         }
     }
 
