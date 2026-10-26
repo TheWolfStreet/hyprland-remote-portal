@@ -12,6 +12,6 @@
     packages = each (system: {
       default = nixpkgs.legacyPackages.${system}.callPackage ./package.nix {};
     });
-    homeManagerModules.default = import ./module.nix self;
+    nixosModules.default = import ./module.nix self;
   };
 }

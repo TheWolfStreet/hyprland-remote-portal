@@ -18,16 +18,21 @@ in {
     trustedApps = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [];
-      example = ["org.kde.kdeconnect"];
+      example = ["org.kde.kdeconnect" "kdeconnect"];
       description = "App id prefixes allowed to control input. Every other app is denied.";
     };
   };
 
   config = lib.mkIf cfg.enable {
     xdg.portal = {
+      enable = true;
       extraPortals = [cfg.package];
-      config.common."org.freedesktop.impl.portal.RemoteDesktop" = ["hyprland-remote"];
+      config.hyprland = {
+        default = lib.mkDefault ["hyprland" "gtk"];
+        "org.freedesktop.impl.portal.RemoteDesktop" = ["hyprland-remote"];
+      };
     };
-    xdg.configFile."hyprland-remote-portal/trusted-apps".text = lib.concatLines cfg.trustedApps;
+
+    environment.etc."xdg/hyprland-remote-portal/trusted-apps".text = lib.concatLines cfg.trustedApps;
   };
 }

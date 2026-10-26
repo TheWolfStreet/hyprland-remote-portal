@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, ffi::OsString, path::PathBuf};
 
 use calloop::channel::Sender;
 use zbus::{
@@ -25,22 +25,35 @@ pub fn serve(commands: Sender<Command>) -> zbus::Result<zbus::blocking::Connecti
         .build()
 }
 
-fn trusted_apps_file() -> Option<PathBuf> {
-    let config = match std::env::var_os("XDG_CONFIG_HOME") {
-        Some(dir) => PathBuf::from(dir),
-        None => PathBuf::from(std::env::var_os("HOME")?).join(".config"),
-    };
-    Some(config.join("hyprland-remote-portal").join("trusted-apps"))
+fn config_dirs(
+    config_home: Option<OsString>,
+    home: Option<OsString>,
+    config_dirs: Option<OsString>,
+) -> Vec<PathBuf> {
+    let user = config_home
+        .filter(|dir| !dir.is_empty())
+        .map(PathBuf::from)
+        .or_else(|| home.map(|home| PathBuf::from(home).join(".config")));
+    let system = config_dirs
+        .filter(|dirs| !dirs.is_empty())
+        .unwrap_or_else(|| OsString::from("/etc/xdg"));
+    user.into_iter()
+        .chain(std::env::split_paths(&system).filter(|dir| dir.is_absolute()))
+        .collect()
 }
 
 fn read_trusted_apps() -> Vec<String> {
-    let Some(file) = trusted_apps_file() else {
-        return Vec::new();
-    };
-    match std::fs::read_to_string(file) {
-        Ok(text) => parse_trusted_apps(&text),
-        Err(_) => Vec::new(),
-    }
+    let dirs = config_dirs(
+        std::env::var_os("XDG_CONFIG_HOME"),
+        std::env::var_os("HOME"),
+        std::env::var_os("XDG_CONFIG_DIRS"),
+    );
+    dirs.iter()
+        .find_map(|dir| {
+            std::fs::read_to_string(dir.join("hyprland-remote-portal").join("trusted-apps")).ok()
+        })
+        .map(|text| parse_trusted_apps(&text))
+        .unwrap_or_default()
 }
 
 fn parse_trusted_apps(text: &str) -> Vec<String> {
@@ -247,6 +260,27 @@ mod tests {
         assert_eq!(
             parse_trusted_apps(text),
             ["org.kde.kdeconnect", "kdeconnect"]
+        );
+    }
+
+    #[test]
+    fn user_config_comes_before_system_dirs() {
+        let dirs = config_dirs(
+            None,
+            Some("/home/user".into()),
+            Some("/etc/xdg:relative:/run/xdg".into()),
+        );
+        assert_eq!(
+            dirs,
+            [
+                PathBuf::from("/home/user/.config"),
+                PathBuf::from("/etc/xdg"),
+                PathBuf::from("/run/xdg"),
+            ]
+        );
+        assert_eq!(
+            config_dirs(Some("/cfg".into()), None, None),
+            [PathBuf::from("/cfg"), PathBuf::from("/etc/xdg")]
         );
     }
 
